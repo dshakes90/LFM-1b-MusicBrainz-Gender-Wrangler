@@ -1,0 +1,41 @@
+Instructions music brainz
+
+Preqrisits
+
+ubuntu version ...
+Open JDK 11
+docker / docker -compose
+
+- Download musicbrainz dump
+- Uninstall all prexisting versions of psql 
+- Download psql (PostgreSQL) 10.10
+
+// create user inside psql
+
+sudo su - postgres
+echo 'CREATE SCHEMA musicbrainz;' | mbslave psql -S
+echo 'CREATE SCHEMA statistics;' | mbslave psql -S
+echo 'CREATE SCHEMA cover_art_archive;' | mbslave psql -S
+echo 'CREATE SCHEMA wikidocs;' | mbslave psql -S
+echo 'CREATE SCHEMA documentation;' | mbslave psql -S
+
+mbslave psql -f ../mbdata/mbdata/sql/CreateTables.sql
+mbslave psql -f ../mbdata/mbdata/sql/statistics/CreateTables.sql
+mbslave psql -f ../mbdata/mbdata/sql/caa/CreateTables.sql
+mbslave psql -f ../mbdata/mbdata/sql/wikidocs/CreateTables.sql
+mbslave psql -f ../mbdata/mbdata/sql/documentation/CreateTables.sql
+
+mbslave import /mnt/usb-WD_Elements_25A2_57584D314536394539594354-0:0-part1/musicBrainz/mbdump.tar.bz2 
+mbslave import /mnt/usb-WD_Elements_25A2_57584D314536394539594354-0:0-part1/musicBrainz/mbdump-derived.tar.bz2
+
+mbslave psql -f ../mbdata/mbdata/sql/CreatePrimaryKeys.sql
+mbslave psql -f ../mbdata/mbdata/sql/statistics/CreatePrimaryKeys.sql
+mbslave psql -f ../mbdata/mbdata/sql/caa/CreatePrimaryKeys.sql
+mbslave psql -f ../mbdata/mbdata/sql/wikidocs/CreatePrimaryKeys.sql
+mbslave psql -f ../mbdata/mbdata/sql/documentation/CreatePrimaryKeys.sql
+mbslave psql -f ../mbdata/mbdata/sql/CreateIndexes.sql
+mbslave psql -f ../mbdata/mbdata/sql/CreateSlaveIndexes.sql
+mbslave psql -f ../mbdata/mbdata/sql/statistics/CreateIndexes.sql
+mbslave psql -f ../mbdata/mbdata/sql/caa/CreateIndexes.sql
+mbslave psql -f ../mbdata/mbdata/sql/CreateFunctions.sql
+mbslave psql -f ../mbdata/mbdata/sql/CreateViews.sql
