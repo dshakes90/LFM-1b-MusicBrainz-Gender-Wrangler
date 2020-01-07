@@ -1,9 +1,9 @@
 LFM-1b-MusicBrainz-Gender-Wrangler
 =========================
 
-UNDER DEVELOPMENT...
-
 Links the LFM-1b dataset consisting of Last FM listening histories to artist gender meta data found in a local config of the MusicBrainz db.
+
+UNDER DEVELOPMENT...
 
 ## Prerequisites
 
@@ -21,4 +21,5 @@ Then check out and configure the following [MusicBrainz db search tool](https://
 
 ## Running the Program
 * Change all relevent paths in ```DeriveGenderFromDb.java``` to set paths for MusicBrainz db and the LFM-1b songs table. 
+* Compile and run ```LastFmMusicbrainzWrangler.java``` 
 
