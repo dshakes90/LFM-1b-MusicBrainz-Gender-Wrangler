@@ -19,12 +19,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>datavec-examples</artifactId>
+    <artifactId>derive-gender</artifactId>
 
     <parent>
-        <groupId>org.deeplearning4j</groupId>
-        <artifactId>deeplearning4j-examples-parent</artifactId>
-        <version>1.0.0-beta6</version>
+        <groupId>org.dshakes.musicbrainz</groupId>
+        <artifactId>lfm-musicbrainz-wrangler-parent</artifactId>
+        <version>1.0.0</version>
     </parent>
 
     <dependencies>

@@ -17,14 +17,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <groupId>org.deeplearning4j</groupId>
-    <artifactId>deeplearning4j-examples-parent</artifactId>
-    <version>1.0.0-beta6</version>
+    <groupId>org.dshakes.musicbrainz</groupId>
+    <artifactId>lfm-musicbrainz-wrangler-parent</artifactId>
+    <version>1.0.0</version>
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
 
-    <name>DeepLearning4j Examples Parent</name>
-    <description>Examples of training different data sets</description>
+    <name>LFM musicbrainz wrangler Parent</name>
+    <description>LFM musicbrainz wrangler</description>
     <properties>
         <!-- Change the nd4j.backend property to nd4j-cuda-9.2-platform,nd4j-cuda-10.0-platform or nd4j-cuda-10.1-platform to use CUDA GPUs -->
         <nd4j.backend>nd4j-native-platform</nd4j.backend>
@@ -60,7 +60,7 @@
     </properties>
 
     <modules>
-        <module>datavec-examples</module>
+        <module>derive-gender</module>
     </modules>
 
     <!-- Maven Enforcer: Ensures user has an up to date version of Maven before building -->

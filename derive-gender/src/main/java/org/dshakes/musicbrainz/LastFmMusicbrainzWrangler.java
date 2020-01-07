@@ -1,6 +1,5 @@
 package org.dshakes.musicbrainz;
 
-import org.apache.commons.math3.util.Pair;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -32,7 +31,7 @@ public class LastFmMusicbrainzWrangler {
         String delimiter = "\t";
         String baseDir = "/home/dshakes/Desktop/TestCSV/";
         // String fileName = "test2.csv";
-        String statsFileName = "LFM-1b_artist_stats.txt";
+        String statsFileName = "LFM-1b_artist_stats2.txt";
 
         // String fileName = "LFM-1b-test.txt";
         //String fileName = "LFM-trim-test.txt";
@@ -82,7 +81,7 @@ public class LastFmMusicbrainzWrangler {
 
         toSave.coalesce(1).saveAsTextFile(outputPath);
 
-        //toSave.saveAsTextFile(outputPath);
+        // toSave.saveAsTextFile(outputPath);
 
         int ambiguous = DeriveGenderFromDb.getAmbiguousCount();
         int missedBand = DeriveGenderFromDb.getMissedBandCount();
@@ -151,4 +150,5 @@ public class LastFmMusicbrainzWrangler {
             System.out.println(e.getMessage());
         }
     }
+
 }
