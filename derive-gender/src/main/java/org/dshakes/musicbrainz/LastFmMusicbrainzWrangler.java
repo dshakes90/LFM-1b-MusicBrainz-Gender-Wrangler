@@ -15,9 +15,6 @@ import org.datavec.spark.transform.SparkTransformExecutor;
 import org.datavec.spark.transform.misc.StringToWritablesFunction;
 import org.datavec.spark.transform.misc.WritablesToStringFunction;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -27,21 +24,18 @@ public class LastFmMusicbrainzWrangler {
 
     public static void main(String[] args)throws Exception {
 
-        int numLinesToSkip = 0;
-        String delimiter = "\t";
+        // RENAME PATH TO USERS PATH:
+
         String baseDir = "/home/dshakes/Desktop/TestCSV/";
-        // String fileName = "test2.csv";
-        String statsFileName = "LFM-1b_artist_stats2.txt";
-
-        // String fileName = "LFM-1b-test.txt";
-        //String fileName = "LFM-trim-test.txt";
-
         String fileName = "LFM-1b_artists_strip.txt";
+        // String fileName = "LFM-trim-test.txt";
+        String delimiter = "\t";
+
+        int numLinesToSkip = 0;
 
         String inputPath = baseDir + fileName;
         String timeStamp = String.valueOf(new Date().getTime());
         String outputPath = baseDir + "LFM-1b_artists_" + timeStamp;
-
 
         Schema lastFmArtistSchema = new Schema.Builder()
             .addColumnInteger("artist_id")
@@ -83,72 +77,18 @@ public class LastFmMusicbrainzWrangler {
 
         // toSave.saveAsTextFile(outputPath);
 
-        int ambiguous = DeriveGenderFromDb.getAmbiguousCount();
-        int missedBand = DeriveGenderFromDb.getMissedBandCount();
-        Integer numRowsRead = DeriveGenderFromDb.getNumRowsRead();
         int[] genderCounts = DeriveGenderFromDb.getTotalGenderCounts();
+
+        double nulls = genderCounts[0];
+        double undefs = DeriveGenderFromDb.getUndefCount();
 
         long totalArtists = artists.count();
 
-        // write stats to tsv file to be analysed in jupyter notebook
-        tsvWriter(baseDir+statsFileName, genderCounts, numRowsRead, missedBand, ambiguous);
+        Integer numRowsRead = DeriveGenderFromDb.getNumRowsRead();
 
-        System.out.println("total artists : " + totalArtists);
-        System.out.println("num rows read : " + numRowsRead);
-
-        double nulls = genderCounts[0];
-        double undefs = DeriveGenderFromDb.GetUndefCount();
-
-        // looking for a value around: 940603
-        //                             168459
-        //                            2849211
-
-        // PRINT STATS
-        System.out.println("- Nulls found: " + nulls/totalArtists);
+        // ----------------------------- PRINT STATS -----------------------------
+        System.out.println("- total artists : " + totalArtists);
         System.out.println("- Global undef count: " + undefs/totalArtists);
-        System.out.println("- Errors due to no results (could be solved by wild cards): " + DeriveGenderFromDb.GetNoQuery());
-        System.out.println("- Ambiguous artist logic success:" + DeriveGenderFromDb.getAmbiguousCount());
 
-        /*
-         * 3190371
-         * 2680752
-         */
     }
-
-    private static void tsvWriter(String path, int[] genderDist, Integer count, int missedBand, int ambiguous){
-        try (PrintWriter writer = new PrintWriter(new File(path))) {
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("Undef");
-            sb.append('\t');
-            sb.append("Male");
-            sb.append('\t');
-            sb.append("Female");
-            sb.append('\t');
-            sb.append("Other");
-            sb.append('\t');
-            sb.append("NA");
-            sb.append('\t');
-            sb.append("Ambiguous");
-            sb.append('\t');
-            sb.append("Total");
-            sb.append('\n');
-
-            for (Integer gd : genderDist){
-                sb.append(gd);
-                sb.append('\t');
-            }
-
-            sb.append(ambiguous);
-            sb.append('\t');
-            sb.append(count);
-            sb.append('\t');
-
-            writer.write(sb.toString());
-
-        } catch (FileNotFoundException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
 }

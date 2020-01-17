@@ -2,7 +2,6 @@ package org.dshakes.musicbrainz;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.apache.commons.math3.util.Pair;
 import org.datavec.api.transform.ColumnType;
 import org.datavec.api.transform.Transform;
 import org.datavec.api.transform.metadata.ColumnMetaData;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,7 +112,7 @@ public class DeriveGenderFromArtistNameTransform implements Transform {
                 for (DerivedColumn d : derivedColumns) {
                     switch (d.columnType) {
                         case String:
-                            list.add(new Text(DeriveGenderFromDb.GetArtistGender(source.toString(), idSource.toInt())));
+                            list.add(new Text(DeriveGenderFromDb.getArtistGender(source.toString(), idSource.toInt())));
                             break;
                         default:
                             throw new IllegalStateException("Unexpected column type: " + d.columnType);

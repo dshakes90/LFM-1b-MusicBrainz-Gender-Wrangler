@@ -1,22 +1,16 @@
 package org.dshakes.musicbrainz;
 
-import scala.Int;
-
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class DeriveGenderFromDb {
 
     private static int undefCount = 0;
     private static int numRowsRead = 0;
     private static int ambiguousCount = 0;
-    private static int missedBandCount = 0;
     private static int noQuery = 0;
     private static int[] totalGenderCounts = new int[5];
 
@@ -25,19 +19,12 @@ public class DeriveGenderFromDb {
     private static String password = "musicbrainz";
     private static final Connection connection = GetConnection();
 
-    private static String queryWildCard = "SELECT id, gender, type FROM artist WHERE UPPER(name) like ?";
     private static String querySongLFM = "SELECT name FROM lastfm.songs WHERE artistid = ?";
     private static String querySongMB = "SELECT name FROM track WHERE artist_credit = ?";
-
-    private static String query = "SELECT id, gender, type FROM artist WHERE UPPER(name) = ?";
     private static String query1 = "SELECT entity0, entity1 FROM L_artist_artist WHERE " +
-        "(entity0 = ? OR entity1 = ?) AND link IN (SELECT id FROM link WHERE link_type = 103)";
-    private static String query2 = "SELECT name, gender FROM artist WHERE id = ?";
+            "(entity0 = ? OR entity1 = ?) AND link IN (SELECT id FROM link WHERE link_type = 103)";
 
-    private static PreparedStatement ps;
     private static PreparedStatement ps1;
-    private static PreparedStatement ps2;
-    private static PreparedStatement psWild;
     private static PreparedStatement psSongLFM;
     private static PreparedStatement psSongMB;
 
@@ -45,10 +32,7 @@ public class DeriveGenderFromDb {
 
     static {
         try {
-            ps = connection.prepareStatement(query);
             ps1 = connection.prepareStatement(query1);
-            ps2 = connection.prepareStatement(query2);
-            psWild = connection.prepareStatement(queryWildCard);
             psSongLFM = connection.prepareStatement(querySongLFM);
             psSongMB = connection.prepareStatement(querySongMB);
 
@@ -66,10 +50,6 @@ public class DeriveGenderFromDb {
         return null;
     }
 
-    public static int getMissedBandCount() {
-        return missedBandCount;
-    }
-
     public static int getAmbiguousCount() {
         return ambiguousCount;
     }
@@ -82,9 +62,9 @@ public class DeriveGenderFromDb {
         return numRowsRead;
     }
 
-    public static int GetUndefCount() { return undefCount; }
+    public static int getUndefCount() { return undefCount; }
 
-    public static int GetNoQuery() {
+    public static int getNoQuery() {
         return noQuery;
     }
 
@@ -92,33 +72,27 @@ public class DeriveGenderFromDb {
         undefCount++;
     }
 
-    private static synchronized void incNoQuery() {
-        noQuery++;
-    }
-
     private static synchronized void incCounter() {
         if (numRowsRead % 100 == 0) {
             System.out.println("rows read: " + numRowsRead);
-        }
-        numRowsRead++;
+        } numRowsRead++;
     }
 
-    // Finds gender with majority in local count
-    private static synchronized void incGlobalGenderCount(int[] localGenderCount) {
-
+    private static int getIndexWithMaxVal(int[] a){
         int maxIndex = 0;
-        for (int i = 0; i < localGenderCount.length; i++) {
-            maxIndex = localGenderCount[i] > localGenderCount[maxIndex] ? i : maxIndex;
+        for (int i = 0; i < a.length; i++) {
+            maxIndex = a[i] > a[maxIndex] ? i : maxIndex;
         }
+        return maxIndex;
+    }
 
-        totalGenderCounts[maxIndex]++;
+    // Find gender with majority in local count
+    private static synchronized void incGlobalGenderCount(int[] localGenderCount) {
+        totalGenderCounts[getIndexWithMaxVal(localGenderCount)]++;
     }
 
     private static void updateDebugCounts(int[] genderCounts) {
-        // if we have majority undef in our classification, increment this count
-        if (genderCounts[0] >= 1 && genderCounts[0] > genderCounts[1] &&
-            genderCounts[0] > genderCounts[2] && genderCounts[0] > genderCounts[3] &&
-            genderCounts[0] > genderCounts[4]) {
+        if(getIndexWithMaxVal(genderCounts) == 0){
             incUndefCount();
         }
     }
@@ -127,43 +101,6 @@ public class DeriveGenderFromDb {
     private static List matchSongs(List<String> lfmSongNames, List<String> mbSongNames) {
         lfmSongNames.retainAll(mbSongNames);
         return lfmSongNames;
-    }
-
-    // Less strict logic for computing artist gender from MusicBrainz db using wildcards.
-    private static Integer[] getArtistMetaWildCard(String lfmArtistName, Integer lfId) {
-
-        Integer[] wildCardMetaData = new Integer[3];
-        String lfmArtistNameWildC = lfmArtistName + "%";
-
-        try {
-            psWild.setString(1, lfmArtistNameWildC.toUpperCase());    // result set of artists from wild card query
-            ResultSet rsWild = psWild.executeQuery();                   // execute query, returns id, gender, type
-
-            while (rsWild.next()) {
-                Integer mbId = rsWild.getInt("id");                  // retrieve id of artist returned by wild card
-
-                if (getAmbiguousArtistSongSimilarity(lfId, mbId) >= 2) {
-
-                    // update artist Meta data
-                    Integer wildGender = rsWild.getInt("gender");
-                    if (wildGender == null) {
-                        wildCardMetaData[0] = 0;
-                    } else {
-                        wildCardMetaData[0] = wildGender;
-                    }
-
-                    wildCardMetaData[1] = rsWild.getInt("type");
-                    wildCardMetaData[2] = rsWild.getInt("id");
-
-                    return wildCardMetaData;
-                }
-            }
-            rsWild.close();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return wildCardMetaData;
     }
 
     private static int getAmbiguousArtistSongSimilarity(int lfmId, int mbId) {
@@ -188,9 +125,6 @@ public class DeriveGenderFromDb {
             }
             rsSongsMB.close();
 
-            //System.out.println("lfm songs: " + lfmSongNames.size());
-            //System.out.println("mb songs: " + mbSongNames.size());
-
             // check and return similarity
             return matchSongs(lfmSongNames, mbSongNames).size();
 
@@ -200,7 +134,8 @@ public class DeriveGenderFromDb {
         return 0;
     }
 
-    private static int[] GetBandGender(Integer id) {
+    // Queries gender of all artists in the band and increments gender count for all member genders
+    private static int[] getBandGender(Integer id) {
 
         Integer bandMemberID;
         int[] genderCounts = new int[5];
@@ -219,11 +154,10 @@ public class DeriveGenderFromDb {
                 try {
                     Artist[] artists = elasticSearch.SearchArtistID(String.valueOf(bandMemberID));
 
-                    // System.out.println(artists[0].toString());
                     if (artists.length > 0) {
                         bandMembergender = artists[0].getGender();
 
-                        if(bandMembergender == null){
+                        if (bandMembergender == null) {
                             bandMembergender = 0;
                         }
                     }
@@ -239,13 +173,25 @@ public class DeriveGenderFromDb {
         return genderCounts;
     }
 
-    private static int[] classifyGender(Integer gender, Integer mbId, int[] localGenderCounts, Integer type) {
+    // Checks if all values in an array are zero
+    private static boolean areAllZero(int[] array) {
+        for (int n : array) if (n != 0) return false;
+        return true;
+    }
 
-        // we must be considering a band compute subsequent genders of members
+    // Checks if artist is a band and classifies gender
+    private static int[] classifyGender(Integer gender, Integer mbId, int[] genderCounts, Integer type) {
+
+        int[] localGenderCounts = Arrays.copyOf(genderCounts, genderCounts.length);
+
+        // considering band - compute genders of members
         if (type != null && type == 2) {
-            localGenderCounts = GetBandGender(mbId);
+            localGenderCounts = getBandGender(mbId);
+            if (areAllZero(localGenderCounts)) {
+                localGenderCounts[0]++;
+            }
         } else {
-            // we are considering an individual artist
+            // considering individual artist
             if (gender != null) {
                 localGenderCounts[gender]++;
             } else {
@@ -255,120 +201,97 @@ public class DeriveGenderFromDb {
         return localGenderCounts;
     }
 
-    /*
-     * Gender classifications key:
-     *
-     * 0 = undef / ambiguous
-     * 1 = male
-     * 2 = female
-     * 3 = other
-     * 4 = not applicable
-     *
-     * localGenderCounts: undefCount / maleCount / femaleCount / otherCount / naCount
-     */
+    // Splits artist name for a given delimiter
+    private static String[] splitArtistOnDelimiter(String delimiter, String artistName) {
+        return artistName.split(delimiter);
+    }
 
-    public static String GetArtistGender(String artistName, Integer lfmID) {
+    // Chooses artist from candidate artists with max unison of songs in mb db and LFM-1b
+    private static Integer[] chooseArtistWithMaxSongSimilarity(Artist[] artists, Integer lfmID) {
 
-        Integer gender = 0;
-        Integer type = 0;
-        Integer mbID = 0;
-
-        int[] genderCounts = new int[5];
+        Integer[] artistMetaData = new Integer[3]; // contains gender, type and mbID
         int maxTrackSimilarity = 0;
         int trackSimilarity;
+
+        for (Artist artist : artists) {
+
+            Integer elasticMBId = Math.toIntExact(artist.getId());
+            trackSimilarity = getAmbiguousArtistSongSimilarity(lfmID, elasticMBId);
+
+            // if artist shares most similar songs, update found artist
+            if (trackSimilarity > maxTrackSimilarity) {
+                artistMetaData[0] = artist.getGender();
+                artistMetaData[1] = artist.getType();
+                artistMetaData[2] = elasticMBId;
+                maxTrackSimilarity = trackSimilarity;
+            }
+        }
+        return artistMetaData;
+    }
+
+
+    // Chooses artist from candidates and classifies gender of given artist
+    private static int[] chooseArtistFromCandidates(Artist[] artists, int lfmID, int[] genderCounts){
+
+        // Choose candidate artist based off which ever artist shares the most song matches to LFM-1b data-set
+        Integer[] artistMetaData = chooseArtistWithMaxSongSimilarity(artists, lfmID);
+
+        return classifyGender(artistMetaData[0], artistMetaData[2], genderCounts , artistMetaData[1]);
+    }
+
+    /*
+     * Gender classifications key: *
+     *
+     * - 0 = undef / ambiguous
+     * - 1 = male
+     * - 2 = female
+     * - 3 = other
+     * - 4 = not applicable
+     * - genderCounts: undefCount / maleCount / femaleCount / otherCount / naCount
+     */
+
+    public static String getArtistGender(String artistName, Integer lfmID) {
+
+        Integer gender;
+        Integer type;
+        Integer mbID;
+        String[] splitArtistNames;
+        Artist[] artists;
+        int[] genderCounts = new int[]{0, 0, 0, 0, 0};
 
         incCounter();
 
         try {
 
-            Artist[] artists = elasticSearch.SearchArtistName(artistName);
+            artists = elasticSearch.SearchArtistName(artistName);
 
+            // (1) We have an exact match on the name, no need to do any more logic to find artist
             if (artists.length > 0 && artists[0].getName().equals(artistName)) {
 
                 mbID = Math.toIntExact(artists[0].getId());
                 gender = artists[0].getGender();
                 type = artists[0].getType();
 
+                genderCounts = classifyGender(gender, mbID, genderCounts, type);
+
             } else {
 
-                if (artists.length == 0) {
-                    incNoQuery();
-                }
+                // (2) We have multiple candidate artists, select one
+                genderCounts = chooseArtistFromCandidates(artists, lfmID, genderCounts);
 
-                for (Artist artist : artists) {
+                splitArtistNames = splitArtistOnDelimiter("&", artistName);
 
-                    // System.out.println("JSON String Result " + artist.toString());
+                // if majority gender of artist has no known gender, try logic with delimiter
+                if (splitArtistNames.length > 1 && getIndexWithMaxVal(genderCounts) == 0) {
+                    genderCounts[0] = 0; // reset undef count
 
-                    Integer elasticMBId = Math.toIntExact(artist.getId());
-                    trackSimilarity = getAmbiguousArtistSongSimilarity(lfmID, elasticMBId);
-
-                    // if artist shares most similar songs, update found artist
-                    if (trackSimilarity > maxTrackSimilarity) {
-                        mbID = elasticMBId;
-                        gender = artist.getGender();
-                        type = artist.getType();
-                        maxTrackSimilarity = trackSimilarity;
+                    for (String n : splitArtistNames) {
+                        genderCounts = chooseArtistFromCandidates(elasticSearch.SearchArtistName(n), lfmID, genderCounts);
                     }
                 }
             }
 
-
-            /*
-            ps.setString(1, artistName.toUpperCase());
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-
-                // retrieve artist meta-data
-                gender = (Integer) rs.getObject("gender");
-                type = (Integer) rs.getObject("type");
-                mbID = rs.getInt("id");
-
-                trackSimilarity = getAmbiguousArtistSongSimilarity(lfmID, mbID);
-
-                //System.out.println("Matched songs:" + trackSimilarity);
-
-                if (trackSimilarity > maxTrackSimilarity) {
-                    ambigArtistGender = gender;
-                    ambigArtistType = type;
-                    ambigArtistMbID = mbID;
-                    maxTrackSimilarity = trackSimilarity;
-                }
-
-                rsSize++;
-            } rs.close();
-
-            // (2) if ambiguous artist, update gender to be artists with biggest proportion matched songs.
-            if (rsSize >= 2) {
-                gender = ambigArtistGender;
-                type = ambigArtistType;
-                mbID = ambigArtistMbID;
-                if (gender != null && gender != 0) {
-                    ambigSuccess = true;
-                }
-            }
-
-            // (3) if our query did not return artists, try less strict condition with wild cards
-            //      commend out for now
-
-
-                // update meta-data found with wild cards
-                Integer[] wildCardMetaData = getArtistMetaWildCard(artistName, lfmID);
-
-                gender = wildCardMetaData[0];
-                type = wildCardMetaData[1];
-                mbID = wildCardMetaData[2];
-
-                if (gender != null && gender != 0) {
-                    wildCardSuccess = true;
-                }
-
-             */
-
-            // (4)  CONSIDER possible scenarios for which band might be classified
-            genderCounts = classifyGender(gender, mbID, genderCounts, type);
-
-            // (5) Update global gender and debug counts
+            // Update global gender and debug counts
             incGlobalGenderCount(genderCounts);
             updateDebugCounts(genderCounts);
 
