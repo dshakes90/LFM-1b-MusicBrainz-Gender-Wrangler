@@ -17,13 +17,14 @@ public class ElasticSearchService {
     public static Artist[] SearchArtistName(String query) throws IOException {
 
         query = URLEncoder.encode(query, "utf8");
-
         URL urlForGetRequest = new URL("http://localhost:8080/api/_search/artists?query=%22" + query + "%22");
         String readLine = null;
         HttpURLConnection conection = (HttpURLConnection) urlForGetRequest.openConnection();
         conection.setRequestMethod("GET");
         //conection.setRequestProperty("userId", "a1bcdef"); // set userId its a sample here
+
         int responseCode = conection.getResponseCode();
+
         if (responseCode == HttpURLConnection.HTTP_OK) {
             BufferedReader in = new BufferedReader(
                 new InputStreamReader(conection.getInputStream()));
@@ -33,29 +34,25 @@ public class ElasticSearchService {
             } in .close();
 
             Artist[] artists = gson.fromJson(response.toString(), Artist[].class);
-
-//            for (Artist artist : artists) {
-//                System.out.println(artist.toString());
-//            }
             return artists;
 
         } else {
             System.out.println("GET NOT WORKED");
         }
-
         return null;
     }
 
     public static Artist[] SearchArtistID(String query) throws IOException {
 
         query = URLEncoder.encode(query, "utf8");
-
         URL urlForGetRequest = new URL("http://localhost:8080/api/_search/artistsid?query=" + query);
         String readLine = null;
         HttpURLConnection conection = (HttpURLConnection) urlForGetRequest.openConnection();
         conection.setRequestMethod("GET");
         //conection.setRequestProperty("userId", "a1bcdef"); // set userId its a sample here
+
         int responseCode = conection.getResponseCode();
+
         if (responseCode == HttpURLConnection.HTTP_OK) {
             BufferedReader in = new BufferedReader(
                 new InputStreamReader(conection.getInputStream()));
@@ -65,16 +62,11 @@ public class ElasticSearchService {
             } in .close();
 
             Artist[] artists = gson.fromJson(response.toString(), Artist[].class);
-
-//            for (Artist artist : artists) {
-//                System.out.println(artist.toString());
-//            }
             return artists;
 
         } else {
             System.out.println("GET NOT WORKED");
         }
-
         return null;
     }
 
@@ -82,7 +74,6 @@ public class ElasticSearchService {
         try {
             SearchArtistName("Xiu Xiu / Devendra Banhart split 7");
             SearchArtistName("The Smiths");
-            //MyGETRequest("id:100");
         } catch (IOException e) {
             e.printStackTrace();
         }

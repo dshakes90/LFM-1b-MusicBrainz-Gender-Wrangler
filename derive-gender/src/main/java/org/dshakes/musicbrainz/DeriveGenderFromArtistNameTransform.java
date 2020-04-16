@@ -102,8 +102,13 @@ public class DeriveGenderFromArtistNameTransform implements Transform {
         }
 
         int i = 0;
-        Writable source = writables.get(deriveFromIdx);
-        Writable idSource = writables.get(deriveFromIdx - 1);
+
+
+
+        Writable mbidSource = writables.get(deriveFromIdx);
+        Writable source = writables.get(deriveFromIdx-1);
+        Writable idSource = writables.get(deriveFromIdx - 2);
+
 
         List<Writable> list = new ArrayList<>(writables.size() + derivedColumns.size());
         for (Writable w : writables) {
@@ -112,7 +117,7 @@ public class DeriveGenderFromArtistNameTransform implements Transform {
                 for (DerivedColumn d : derivedColumns) {
                     switch (d.columnType) {
                         case String:
-                            list.add(new Text(DeriveGenderFromDb.getArtistGender(source.toString(), idSource.toInt())));
+                            list.add(new Text(DeriveGenderFromDb.getArtistGender(source.toString(), idSource.toInt(), mbidSource.toString())));
                             break;
                         default:
                             throw new IllegalStateException("Unexpected column type: " + d.columnType);

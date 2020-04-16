@@ -8,6 +8,9 @@ import java.util.List;
 
 public class DeriveGenderFromDb {
 
+    // Flag to determin which dataset we are using
+    private static boolean oldLFM1b = true;
+
     private static int undefCount = 0;
     private static int numRowsRead = 0;
     private static int ambiguousCount = 0;
@@ -19,6 +22,8 @@ public class DeriveGenderFromDb {
     private static String password = "musicbrainz";
     private static final Connection connection = GetConnection();
 
+    private static String queryMBID = "SELECT gender FROM lastfm.artists WHERE grid = ?";
+
     private static String querySongLFM = "SELECT name FROM lastfm.songs WHERE artistid = ?";
     private static String querySongMB = "SELECT name FROM track WHERE artist_credit = ?";
     private static String query1 = "SELECT entity0, entity1 FROM L_artist_artist WHERE " +
@@ -28,6 +33,8 @@ public class DeriveGenderFromDb {
     private static PreparedStatement psSongLFM;
     private static PreparedStatement psSongMB;
 
+    private static PreparedStatement psMBIDArtistName;
+
     private static ElasticSearchService elasticSearch = new ElasticSearchService();
 
     static {
@@ -35,6 +42,9 @@ public class DeriveGenderFromDb {
             ps1 = connection.prepareStatement(query1);
             psSongLFM = connection.prepareStatement(querySongLFM);
             psSongMB = connection.prepareStatement(querySongMB);
+
+            // newly added prepared statment
+            psMBIDArtistName = connection.prepareStatement(queryMBID);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -250,7 +260,7 @@ public class DeriveGenderFromDb {
      * - genderCounts: undefCount / maleCount / femaleCount / otherCount / naCount
      */
 
-    public static String getArtistGender(String artistName, Integer lfmID) {
+    public static String getArtistGender(String artistName, Integer lfmID, String mbIDhash) {
 
         Integer gender;
         Integer type;
@@ -263,6 +273,23 @@ public class DeriveGenderFromDb {
 
         try {
 
+            // hacky but might work, (1) retirve artist name via hashs
+            if(oldLFM1b == true){
+                String tempArtistName = null;
+                psMBIDArtistName.setString(1, mbIDhash);
+                ResultSet rsArtistName = psMBIDArtistName.executeQuery();
+
+                while (rsArtistName.next()) {
+                    tempArtistName = rsArtistName.getString("name");
+                } rsArtistName.close();
+
+                if (tempArtistName != null){
+                    artistName = tempArtistName;
+                }
+            }
+
+
+            // if we are working with the other LastFm dataset, then first query the mbid,
             artists = elasticSearch.SearchArtistName(artistName);
 
             // (1) We have an exact match on the name, no need to do any more logic to find artist
@@ -298,6 +325,8 @@ public class DeriveGenderFromDb {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+
+        //System.out.println(genderCounts[0] + "/" + genderCounts[1] + "/" + genderCounts[2] + "/" + genderCounts[3] + "/" + genderCounts[4]);
 
         return genderCounts[0] + "/" + genderCounts[1] + "/" + genderCounts[2] + "/" + genderCounts[3] + "/" + genderCounts[4];
     }

@@ -22,13 +22,19 @@ import java.util.List;
 
 public class LastFmMusicbrainzWrangler {
 
+    private static boolean LastFmOld = true;
+
     public static void main(String[] args)throws Exception {
 
         // RENAME PATH TO USERS PATH:
+        //String baseDir = "/home/dshakes/Desktop/TestCSV/";
+        //String fileName = "LFM-1b_artists_strip.txt";
 
-        String baseDir = "/home/dshakes/Desktop/TestCSV/";
-        String fileName = "LFM-1b_artists_strip.txt";
-        // String fileName = "LFM-trim-test.txt";
+        // Test on new last-fm dataset
+        String baseDir = "/media/dshakes/Elements1/lastfm-dataset-360K_0.2/lastfm-dataset-360K/out/";
+        String fileName = "lastfm360k_artists.txt";
+        //String fileName = "test-artists.txt";
+        //String fileName = "LFM-trim-test.txt";
         String delimiter = "\t";
 
         int numLinesToSkip = 0;
@@ -39,7 +45,7 @@ public class LastFmMusicbrainzWrangler {
 
         Schema lastFmArtistSchema = new Schema.Builder()
             .addColumnInteger("artist_id")
-            .addColumnString("name")
+            .addColumnString("artist").addColumnString("mdid")
             .build();
 
         TransformProcess tp = new TransformProcess.Builder(lastFmArtistSchema)
@@ -66,6 +72,7 @@ public class LastFmMusicbrainzWrangler {
 
         // read the data file
         JavaRDD<String> lines = sc.textFile(inputPath);
+
         // convert to Writable
         JavaRDD<List<Writable>> artists = lines.map(new StringToWritablesFunction(new CSVRecordReader(numLinesToSkip, '\t')));
         // run our transform process
@@ -76,19 +83,12 @@ public class LastFmMusicbrainzWrangler {
         toSave.coalesce(1).saveAsTextFile(outputPath);
 
         // toSave.saveAsTextFile(outputPath);
-
         int[] genderCounts = DeriveGenderFromDb.getTotalGenderCounts();
-
-        double nulls = genderCounts[0];
         double undefs = DeriveGenderFromDb.getUndefCount();
-
         long totalArtists = artists.count();
-
-        Integer numRowsRead = DeriveGenderFromDb.getNumRowsRead();
 
         // ----------------------------- PRINT STATS -----------------------------
         System.out.println("- total artists : " + totalArtists);
         System.out.println("- Global undef count: " + undefs/totalArtists);
-
     }
 }
