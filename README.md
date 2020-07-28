@@ -5,19 +5,19 @@ LFM-1b-MusicBrainz-Gender-Wrangler
 
 Links the LFM-1b dataset consisting of Last FM listening histories to artist gender meta data found in a local config of the MusicBrainz db.
 
-## Prerequisites
+## Pre-requisites
 
-* Open JDK 11
+* JDK 1.8
 * PSQL (PostgreSQL) 10.10
 * Docker / Docker compose 
 
-Before cloning the repo the LFM-1b and MusicBrainz data-set must be appropriatly configured.
+Before cloning the repo the LFM-1b and MusicBrainz dataset must be appropriatly configured.
 
-* [LFM-1b](http://www.cp.jku.at/datasets/LFM-1b/) dataset: Download the file: ```LFM-1b.zip``` and extract to appropriate dir. 
+* [LFM-1b](http://www.cp.jku.at/datasets/LFM-1b/) dataset: Download the file: ```LFM-1b.zip``` and extract the zip file to a temp dir e.g. ~/temp
 
 * Rename LFM-1b_tracks.txt to LFM-1b_tracks.tsv
 * Run the following cmd in psql to insert data from LFM-1b_tracks into a db: <br/>
-```COPY songs FROM 'C:/../LFM-1b_tracks.tsv' DELIMITER '\t'```
+```COPY songs FROM '/path_to_file/LFM-1b_tracks.tsv' DELIMITER '\t'```
 
 * The [MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_Database/Download) db dumps should be downloaded. Choose the appropriate mirror and download ```mbdump.tar.bz2``` and ```mbdump-derived.tar.bz2``` to your chosen path.   
 
@@ -55,7 +55,7 @@ mbslave psql -f $MBDATA/mbdata/sql/CreateFunctions.sql
 mbslave psql -f $MBDATA/mbdata/sql/CreateViews.sql
 ```
 
-Then check out and configure the following [MusicBrainz db search tool](https://github.com/dshakes90/musicbrainzsearch) and follow the instructions in it's ```README.md``` to start the elastic search API.
+Then check out and configure the following [MusicBrainz db search tool](https://github.com/dshakes90/musicbrainzsearch) and follow the instructions in it's ```README.md``` to start the elasticsearch API.
 
 ## Running the Program
 
